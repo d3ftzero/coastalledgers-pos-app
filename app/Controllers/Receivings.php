@@ -46,12 +46,9 @@ class Receivings extends Secure_Controller
         $this->config = config(OSPOS::class)->settings;
     }
 
-    /**
-     * @return void
-     */
     public function getIndex(): ResponseInterface|string
     {
-        $this->_reload();
+        return $this->_reload();
     }
 
     /**
@@ -66,7 +63,7 @@ class Receivings extends Secure_Controller
         $suggestions = $this->item->get_search_suggestions($search, ['search_custom' => false, 'is_deleted' => false], true);
         $suggestions = array_merge($suggestions, $this->item_kit->get_search_suggestions($search));
 
-        $this->response->setJSON($suggestions);
+        return $this->response->setJSON($suggestions);
     }
 
     /**
@@ -81,7 +78,7 @@ class Receivings extends Secure_Controller
         $suggestions = $this->item->get_stock_search_suggestions($search, ['search_custom' => false, 'is_deleted' => false], true);
         $suggestions = array_merge($suggestions, $this->item_kit->get_search_suggestions($search));
 
-        $this->response->setJSON($suggestions);
+        return $this->response->setJSON($suggestions);
     }
 
     /**
@@ -128,34 +125,34 @@ class Receivings extends Secure_Controller
     /**
      * Sets receiving comment. Used in app/Views/receivings/receiving.php
      *
-     * @return void
      * @noinspection PhpUnused
      */
-    public function postSetComment(): void
+    public function postSetComment(): ResponseInterface|string
     {
         $this->receiving_lib->set_comment($this->request->getPost('comment', FILTER_SANITIZE_FULL_SPECIAL_CHARS));
+        return $this->response->setJSON(['success' => true]);
     }
 
     /**
      * Sets the print after sale flag for the receiving. Used in app/Views/receivings/receiving.php
      *
-     * @return void
      * @noinspection PhpUnused
      */
-    public function postSetPrintAfterSale(): void
+    public function postSetPrintAfterSale(): ResponseInterface|string
     {
         $this->receiving_lib->set_print_after_sale($this->request->getPost('recv_print_after_sale') != null);
+        return $this->response->setJSON(['success' => true]);
     }
 
     /**
      * Sets the reference number for the receiving.  Used in app/Views/receivings/receiving.php
      *
-     * @return void
      * @noinspection PhpUnused
      */
-    public function postSetReference(): void
+    public function postSetReference(): ResponseInterface|string
     {
         $this->receiving_lib->set_reference($this->request->getPost('recv_reference', FILTER_SANITIZE_FULL_SPECIAL_CHARS));
+        return $this->response->setJSON(['success' => true]);
     }
 
     /**
@@ -190,8 +187,7 @@ class Receivings extends Secure_Controller
     /**
      * Edit line item in current receiving. Used in app/Views/receivings/receiving.php
      *
-     * @param $item_id
-     * @return void
+     * @param string|int|null $item_id
      * @noinspection PhpUnused
      */
     public function postEditItem($item_id): ResponseInterface|string

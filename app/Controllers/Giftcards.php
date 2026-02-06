@@ -132,20 +132,20 @@ class Giftcards extends Secure_Controller
         if ($this->giftcard->save_value($giftcard_data, $giftcard_id)) {
             // New giftcard
             if ($giftcard_id == NEW_ENTRY) {    // TODO: Constant needed
-                $this->response->setJSON([
+                return $this->response->setJSON([
                     'success' => true,
                     'message' => lang('Giftcards.successful_adding') . ' ' . $giftcard_data['giftcard_number'],
                     'id'      => $giftcard_data['giftcard_id']
                 ]);
             } else { // Existing giftcard
-                $this->response->setJSON([
+                return $this->response->setJSON([
                     'success' => true,
                     'message' => lang('Giftcards.successful_updating') . ' ' . $giftcard_data['giftcard_number'],
                     'id'      => $giftcard_id
                 ]);
             }
         } else { // Failure
-            $this->response->setJSON([
+            return $this->response->setJSON([
                 'success' => false,
                 'message' => lang('Giftcards.error_adding_updating') . ' ' . $giftcard_data['giftcard_number'],
                 'id'      => NEW_ENTRY
@@ -159,14 +159,14 @@ class Giftcards extends Secure_Controller
      * @return void
      * @noinspection PhpUnused
      */
-    public function postCheckNumberGiftcard(): ResponseInterface|string
+    public function postCheckNumberGiftcard(): ResponseInterface
     {
         $existing_id = $this->request->getPost('giftcard_id', FILTER_SANITIZE_NUMBER_INT);
         $giftcard_number = $this->request->getPost('giftcard_number', FILTER_SANITIZE_NUMBER_INT);
         $giftcard_id = $this->giftcard->get_giftcard_id($giftcard_number);
         $success = ($giftcard_id == (int) $existing_id || !$giftcard_id );
 
-        echo $success ? 'true' : 'false';
+        return $this->response->setJSON($success ? 'true' : 'false');
     }
 
     /**
@@ -177,12 +177,12 @@ class Giftcards extends Secure_Controller
         $giftcards_to_delete = $this->request->getPost('ids', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
 
         if ($this->giftcard->delete_list($giftcards_to_delete)) {
-            $this->response->setJSON([
+            return $this->response->setJSON([
                 'success' => true,
                 'message' => lang('Giftcards.successful_deleted') . ' ' . count($giftcards_to_delete) . ' ' . lang('Giftcards.one_or_multiple')
             ]);
         } else {
-            $this->response->setJSON(['success' => false, 'message' => lang('Giftcards.cannot_be_deleted')]);
+            return $this->response->setJSON(['success' => false, 'message' => lang('Giftcards.cannot_be_deleted')]);
         }
     }
 }

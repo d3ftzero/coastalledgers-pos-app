@@ -1,7 +1,7 @@
 <?php
 
 return [
-    "attribute_value_invalid_chars"    => "Il valore dell'attributo non può contenere '_' o '|'",
+    'attribute_value_invalid_chars'    => "Il valore dell'attributo non può contenere '_' o '|'",
     "confirm_delete"                   => "Sei sicuro di voler eliminare gli attributi selezionati?",
     "confirm_restore"                  => "Sei sicuro di voler ripristinare l'attributo selezionato?",
     "definition_cannot_be_deleted"     => "Non riesco a cancellare l'attributo selezionato",

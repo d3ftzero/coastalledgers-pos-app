@@ -1,7 +1,7 @@
 <?php
 
 return [
-    "account_number"                => "Codice Fiscale",
+    'account_number'                => 'Codice Fiscale',
     "account_number_duplicate"      => "Il numero dell'account è già presente nel database.",
     "available_points"              => "Punti Dispnibili",
     "available_points_value"        => "",

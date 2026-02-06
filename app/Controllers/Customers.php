@@ -112,7 +112,7 @@ class Customers extends Persons
             $data_rows[] = get_customer_data_row($person, $stats);
         }
 
-        $this->response->setJSON(['total' => $total_rows, 'rows' => $data_rows]);
+        return $this->response->setJSON(['total' => $total_rows, 'rows' => $data_rows]);
     }
 
     /**
@@ -313,30 +313,30 @@ class Customers extends Persons
     /**
      * Verifies if an email address already exists. Used in app/Views/customers/form.php
      *
-     * @return void
+     * @return ResponseInterface
      * @noinspection PhpUnused
      */
-    public function postCheckEmail(): ResponseInterface|string
+    public function postCheckEmail(): ResponseInterface
     {
         $email = strtolower($this->request->getPost('email', FILTER_SANITIZE_EMAIL));
         $person_id = $this->request->getPost('person_id', FILTER_SANITIZE_NUMBER_INT);
 
         $exists = $this->customer->check_email_exists($email, $person_id);
 
-        echo !$exists ? 'true' : 'false';
+        return $this->response->setJSON(!$exists ? 'true' : 'false');
     }
 
     /**
      * Verifies if an account number already exists. Used in app/Views/customers/form.php
      *
-     * @return void
+     * @return ResponseInterface
      * @noinspection PhpUnused
      */
-    public function postCheckAccountNumber(): ResponseInterface|string
+    public function postCheckAccountNumber(): ResponseInterface
     {
         $exists = $this->customer->check_account_number_exists($this->request->getPost('account_number'), $this->request->getPost('person_id', FILTER_SANITIZE_NUMBER_INT));
 
-        echo !$exists ? 'true' : 'false';
+        return $this->response->setJSON(!$exists ? 'true' : 'false');
     }
 
     /**

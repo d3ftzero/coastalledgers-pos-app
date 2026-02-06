@@ -1659,7 +1659,7 @@ class Reports extends Secure_Controller
             )
         ];
 
-        $this->response->setJSON([$sale_id => $summary_data]);
+        return $this->response->setJSON([$sale_id => $summary_data]);
     }
 
     /**
@@ -1910,7 +1910,7 @@ class Reports extends Secure_Controller
             )
         ];
 
-        $this->response->setJSON([$receiving_id => $summary_data]);
+        return $this->response->setJSON([$receiving_id => $summary_data]);
     }
 
     /**

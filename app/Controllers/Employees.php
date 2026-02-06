@@ -206,12 +206,12 @@ class Employees extends Persons
      * Checks an employee username against the database. Used in app\Views\employees\form.php
      *
      * @param $employee_id
-     * @return void
+     * @return ResponseInterface
      * @noinspection PhpUnused
      */
-    public function getCheckUsername($employee_id): ResponseInterface|string
+    public function getCheckUsername($employee_id): ResponseInterface
     {
         $exists = $this->employee->username_exists($employee_id, $this->request->getGet('username'));
-        echo !$exists ? 'true' : 'false';
+        return $this->response->setJSON(!$exists ? 'true' : 'false');
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Models\Tax_category;
+use CodeIgniter\HTTP\ResponseInterface;
 use Config\Services;
 
 /**

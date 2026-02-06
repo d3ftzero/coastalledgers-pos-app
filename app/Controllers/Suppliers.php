@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Models\Supplier;
+use CodeIgniter\HTTP\ResponseInterface;
 use Config\Services;
 
 class Suppliers extends Persons
@@ -36,7 +37,7 @@ class Suppliers extends Persons
         $data_row = get_supplier_data_row($this->supplier->get_info($row_id));
         $data_row['category'] = $this->supplier->get_category_name($data_row['category']);
 
-        $this->response->setJSON($data_row);
+        return $this->response->setJSON($data_row);
     }
 
     /**
@@ -73,7 +74,7 @@ class Suppliers extends Persons
         $search = $this->request->getGet('term');
         $suggestions = $this->supplier->get_search_suggestions($search, true);
 
-        $this->response->setJSON($suggestions);
+        return $this->response->setJSON($suggestions);
     }
 
     /**
@@ -84,7 +85,7 @@ class Suppliers extends Persons
         $search = $this->request->getPost('term');
         $suggestions = $this->supplier->get_search_suggestions($search, false);
 
-        $this->response->setJSON($suggestions);
+        return $this->response->setJSON($suggestions);
     }
 
     /**
@@ -147,21 +148,21 @@ class Suppliers extends Persons
         if ($this->supplier->save_supplier($person_data, $supplier_data, $supplier_id)) {
             // New supplier
             if ($supplier_id == NEW_ENTRY) {
-                $this->response->setJSON([
+                return $this->response->setJSON([
                     'success' => true,
                     'message' => lang('Suppliers.successful_adding') . ' ' . $supplier_data['company_name'],
                     'id'      => $supplier_data['person_id']
                 ]);
             } else { // Existing supplier
 
-                $this->response->setJSON([
+                return $this->response->setJSON([
                     'success' => true,
                     'message' => lang('Suppliers.successful_updating') . ' ' . $supplier_data['company_name'],
                     'id'      => $supplier_id
                 ]);
             }
         } else { // Failure
-            $this->response->setJSON([
+            return $this->response->setJSON([
                 'success' => false,
                 'message' => lang('Suppliers.error_adding_updating') . ' ' .     $supplier_data['company_name'],
                 'id'      => NEW_ENTRY
@@ -179,12 +180,12 @@ class Suppliers extends Persons
         $suppliers_to_delete = $this->request->getPost('ids', FILTER_SANITIZE_NUMBER_INT);
 
         if ($this->supplier->delete_list($suppliers_to_delete)) {
-            $this->response->setJSON([
+            return $this->response->setJSON([
                 'success' => true,
                 'message' => lang('Suppliers.successful_deleted') . ' ' . count($suppliers_to_delete) . ' ' . lang('Suppliers.one_or_multiple')
             ]);
         } else {
-            $this->response->setJSON(['success' => false, 'message' => lang('Suppliers.cannot_be_deleted')]);
+            return $this->response->setJSON(['success' => false, 'message' => lang('Suppliers.cannot_be_deleted')]);
         }
     }
 }

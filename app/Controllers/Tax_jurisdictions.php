@@ -54,7 +54,7 @@ class Tax_jurisdictions extends Secure_Controller
             $data_rows[] = get_tax_jurisdictions_data_row($tax_jurisdiction);
         }
 
-        $this->response->setJSON(['total' => $total_rows, 'rows' => $data_rows]);
+        return $this->response->setJSON(['total' => $total_rows, 'rows' => $data_rows]);
     }
 
     /**

@@ -183,7 +183,7 @@ class Items extends Secure_Controller
         $search = $this->request->getPost('term');
         $suggestions = $this->item->get_search_suggestions($search, $options);
 
-        return $this->response->JSON($suggestions);
+        return $this->response->setJSON($suggestions);
     }
 
     /**
@@ -196,7 +196,7 @@ class Items extends Secure_Controller
         $search = $this->request->getGet('term');
         $suggestions = $this->item->get_search_suggestions($search, ['search_custom' => false, 'is_deleted' => false], true);
 
-        return $this->response->JSON($suggestions);
+        return $this->response->setJSON($suggestions);
     }
 
     /**
@@ -207,7 +207,7 @@ class Items extends Secure_Controller
     {
         $suggestions = $this->item->get_low_sell_suggestions($this->request->getPostGet('name'));
 
-        return $this->response->JSON($suggestions);
+        return $this->response->setJSON($suggestions);
     }
 
     /**
@@ -218,7 +218,7 @@ class Items extends Secure_Controller
     {
         $suggestions = $this->item->get_kit_search_suggestions($this->request->getGet('term'), ['search_custom' => false, 'is_deleted' => false], true);
 
-        return $this->response->JSON($suggestions);
+        return $this->response->setJSON($suggestions);
     }
 
     /**
@@ -229,7 +229,7 @@ class Items extends Secure_Controller
     {
         $suggestions = $this->item->get_category_suggestions($this->request->getGet('term'));
 
-        return $this->response->JSON($suggestions);
+        return $this->response->setJSON($suggestions);
     }
 
     /**
@@ -240,7 +240,7 @@ class Items extends Secure_Controller
     {
         $suggestions = $this->item->get_location_suggestions($this->request->getGet('term'));
 
-        return $this->response->JSON($suggestions);
+        return $this->response->setJSON($suggestions);
     }
 
     /**
@@ -257,7 +257,7 @@ class Items extends Secure_Controller
             $result[$item_info->item_id] = get_item_data_row($item_info);
         }
 
-        return $this->response->JSON($result);
+        return $this->response->setJSON($result);
     }
 
     /**
@@ -718,16 +718,16 @@ class Items extends Secure_Controller
             if ($success && $upload_success) {
                 $message = lang('Items.successful_' . ($new_item ? 'adding' : 'updating')) . ' ' . $item_data['name'];
 
-                return $this->response->JSON(['success' => true, 'message' => $message, 'id' => $item_id]);
+                return $this->response->setJSON(['success' => true, 'message' => $message, 'id' => $item_id]);
             } else {
                 $message = $upload_success ? lang('Items.error_adding_updating') . ' ' . $item_data['name'] : strip_tags($upload_data['error']);
 
-                return $this->response->JSON(['success' => false, 'message' => $message, 'id' => $item_id]);
+                return $this->response->setJSON(['success' => false, 'message' => $message, 'id' => $item_id]);
             }
         } else {
             $message = lang('Items.error_adding_updating') . ' ' . $item_data['name'];
 
-            return $this->response->JSON(['success' => false, 'message' => $message, 'id' => NEW_ENTRY]);
+            return $this->response->setJSON(['success' => false, 'message' => $message, 'id' => NEW_ENTRY]);
         }
     }
 
@@ -778,14 +778,14 @@ class Items extends Secure_Controller
     /**
      * Ajax call to check to see if the item number, a.k.a. barcode, is already used by another item
      * If it exists then that is an error condition so return true for "error found"
-     * @return void
+     * @return ResponseInterface
      * @noinspection PhpUnused
      */
-    public function postCheckItemNumber(): ResponseInterface|string
+    public function postCheckItemNumber(): ResponseInterface
     {
         $exists = $this->item->item_number_exists($this->request->getPost('item_number'), $this->request->getPost('item_id'));
 
-        echo !$exists ? 'true' : 'false';
+        return $this->response->setJSON(!$exists ? 'true' : 'false');
     }
 
     /**
@@ -813,7 +813,7 @@ class Items extends Secure_Controller
         $item_data = ['pic_filename' => null];
         $result = $this->item->save_value($item_data, $item_id);
 
-        return $this->response->JSON(['success' => $result]);
+        return $this->response->setJSON(['success' => $result]);
     }
 
     /**
@@ -848,11 +848,11 @@ class Items extends Secure_Controller
         if ($this->item_quantity->save_value($item_quantity_data, $item_id, $location_id)) {
             $message = lang('Items.successful_updating') . " $cur_item_info->name";
 
-            return $this->response->JSON(['success' => true, 'message' => $message, 'id' => $item_id]);
+            return $this->response->setJSON(['success' => true, 'message' => $message, 'id' => $item_id]);
         } else {
             $message = lang('Items.error_adding_updating') . " $cur_item_info->name";
 
-            return $this->response->JSON(['success' => false, 'message' => $message, 'id' => NEW_ENTRY]);
+            return $this->response->setJSON(['success' => false, 'message' => $message, 'id' => NEW_ENTRY]);
         }
     }
 
@@ -892,9 +892,9 @@ class Items extends Secure_Controller
                 $this->item_taxes->save_multiple($items_taxes_data, $items_to_update);
             }
 
-            return $this->response->JSON(['success' => true, 'message' => lang('Items.successful_bulk_edit'), 'id' => $items_to_update]);
+            return $this->response->setJSON(['success' => true, 'message' => lang('Items.successful_bulk_edit'), 'id' => $items_to_update]);
         } else {
-            return $this->response->JSON(['success' => false, 'message' => lang('Items.error_updating_multiple')]);
+            return $this->response->setJSON(['success' => false, 'message' => lang('Items.error_updating_multiple')]);
         }
     }
 
@@ -906,9 +906,9 @@ class Items extends Secure_Controller
 
         if ($this->item->delete_list($items_to_delete)) {
             $message = lang('Items.successful_deleted') . ' ' . count($items_to_delete) . ' ' . lang('Items.one_or_multiple');
-            return $this->response->JSON(['success' => true, 'message' => $message]);
+            return $this->response->setJSON(['success' => true, 'message' => $message]);
         } else {
-            return $this->response->JSON(['success' => false, 'message' => lang('Items.cannot_be_deleted')]);
+            return $this->response->setJSON(['success' => false, 'message' => lang('Items.cannot_be_deleted')]);
         }
     }
 
@@ -948,7 +948,7 @@ class Items extends Secure_Controller
         helper('importfile_helper');
         try {
             if ($_FILES['file_path']['error'] !== UPLOAD_ERR_OK) {
-                return $this->response->JSON(['success' => false, 'message' => lang('Items.csv_import_failed')]);
+                return $this->response->setJSON(['success' => false, 'message' => lang('Items.csv_import_failed')]);
             } else {
                 if (file_exists($_FILES['file_path']['tmp_name'])) {
                     set_time_limit(240);
@@ -1038,18 +1038,18 @@ class Items extends Secure_Controller
                     if (count($failCodes) > 0) {
                         $message = lang('Items.csv_import_partially_failed', [count($failCodes), implode(', ', $failCodes)]);
                         $db->transRollback();
-                        return $this->response->JSON(['success' => false, 'message' => $message]);
+                        return $this->response->setJSON(['success' => false, 'message' => $message]);
                     } else {
                         $db->transCommit();
 
-                        return $this->response->JSON(['success' => true, 'message' => lang('Items.csv_import_success')]);
+                        return $this->response->setJSON(['success' => true, 'message' => lang('Items.csv_import_success')]);
                     }
                 } else {
-                    return $this->response->JSON(['success' => false, 'message' => lang('Items.csv_import_nodata_wrongformat')]);
+                    return $this->response->setJSON(['success' => false, 'message' => lang('Items.csv_import_nodata_wrongformat')]);
                 }
             }
         } catch (Exception $e) {
-            return $this->response->JSON(['success' => false, 'message' => $e->getMessage()]);
+            return $this->response->setJSON(['success' => false, 'message' => $e->getMessage()]);
         }
 
     }

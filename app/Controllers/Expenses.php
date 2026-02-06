@@ -173,7 +173,7 @@ class Expenses extends Secure_Controller
                 return $this->response->setJSON(['success' => true, 'message' => lang('Expenses.successful_updating'), 'id' => $expense_id]);
             }
         } else { // Failure
-            $this->response->setJSON(['success' => false, 'message' => lang('Expenses.error_adding_updating'), 'id' => NEW_ENTRY]);
+            return $this->response->setJSON(['success' => false, 'message' => lang('Expenses.error_adding_updating'), 'id' => NEW_ENTRY]);
         }
     }
 
@@ -185,9 +185,9 @@ class Expenses extends Secure_Controller
         $expenses_to_delete = $this->request->getPost('ids', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
 
         if ($this->expense->delete_list($expenses_to_delete)) {
-            $this->response->setJSON(['success' => true, 'message' => lang('Expenses.successful_deleted') . ' ' . count($expenses_to_delete) . ' ' . lang('Expenses.one_or_multiple'), 'ids' => $expenses_to_delete]);
+            return $this->response->setJSON(['success' => true, 'message' => lang('Expenses.successful_deleted') . ' ' . count($expenses_to_delete) . ' ' . lang('Expenses.one_or_multiple'), 'ids' => $expenses_to_delete]);
         } else {
-            $this->response->setJSON(['success' => false, 'message' => lang('Expenses.cannot_be_deleted'), 'ids' => $expenses_to_delete]);
+            return $this->response->setJSON(['success' => false, 'message' => lang('Expenses.cannot_be_deleted'), 'ids' => $expenses_to_delete]);
         }
     }
 }

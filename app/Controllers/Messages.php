@@ -54,9 +54,9 @@ class Messages extends Secure_Controller
         $response = $this->sms_lib->sendSMS($phone, $message);
 
         if ($response) {
-            $this->response->setJSON(['success' => true, 'message' => lang('Messages.successfully_sent') . ' ' . esc($phone)]);
+            return $this->response->setJSON(['success' => true, 'message' => lang('Messages.successfully_sent') . ' ' . esc($phone)]);
         } else {
-            $this->response->setJSON(['success' => false, 'message' => lang('Messages.unsuccessfully_sent') . ' ' . esc($phone)]);
+            return $this->response->setJSON(['success' => false, 'message' => lang('Messages.unsuccessfully_sent') . ' ' . esc($phone)]);
         }
     }
 
@@ -75,13 +75,13 @@ class Messages extends Secure_Controller
         $response = $this->sms_lib->sendSMS($phone, $message);
 
         if ($response) {
-            $this->response->setJSON([
+            return $this->response->setJSON([
                 'success'   => true,
                 'message'   => lang('Messages.successfully_sent') . ' ' . esc($phone),
                 'person_id' => $person_id
             ]);
         } else {
-            $this->response->setJSON([
+            return $this->response->setJSON([
                 'success'   => false,
                 'message'   => lang('Messages.unsuccessfully_sent') . ' ' . esc($phone),
                 'person_id' => NEW_ENTRY

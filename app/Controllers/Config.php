@@ -439,7 +439,7 @@ class Config extends Secure_Controller
         $fmt->setSymbol(NumberFormatter::CURRENCY_SYMBOL, $currency_symbol);
         $number_local_example = $fmt->format(1234567890.12300);
 
-        $this->response->setJSON([
+        return $this->response->setJSON([
             'success'               => $number_local_example != false,
             'save_number_locale'    => $save_number_locale,
             'number_locale_example' => $number_local_example,
@@ -574,7 +574,7 @@ class Config extends Secure_Controller
         $lists = $this->_mailchimp($this->request->getPost('mailchimp_api_key'));
         $success = count($lists) > 0;
 
-        $this->response->setJSON([
+        return $this->response->setJSON([
             'success'         => $success,
             'message'         => lang('Config.mailchimp_key_' . ($success ? '' : 'un') . 'successfully'),
             'mailchimp_lists' => $lists
@@ -609,7 +609,7 @@ class Config extends Secure_Controller
 
         $success = $this->appconfig->batch_save($batch_save_data);
 
-        $this->response->setJSON(['success' => $success, 'message' => lang('Config.saved_' . ($success ? '' : 'un') . 'successfully')]);
+        return $this->response->setJSON(['success' => $success, 'message' => lang('Config.saved_' . ($success ? '' : 'un') . 'successfully')]);
     }
 
     /**
@@ -713,7 +713,7 @@ class Config extends Secure_Controller
 
         $success = $this->db->transStatus();
 
-        $this->response->setJSON(['success' => $success, 'message' => lang('Config.saved_' . ($success ? '' : 'un') . 'successfully')]);
+        return $this->response->setJSON(['success' => $success, 'message' => lang('Config.saved_' . ($success ? '' : 'un') . 'successfully')]);
     }
 
     /**
@@ -760,7 +760,7 @@ class Config extends Secure_Controller
 
         $success = $this->db->transStatus();
 
-        $this->response->setJSON(['success' => $success, 'message' => lang('Config.saved_' . ($success ? '' : 'un') . 'successfully')]);
+        return $this->response->setJSON(['success' => $success, 'message' => lang('Config.saved_' . ($success ? '' : 'un') . 'successfully')]);
     }
 
     /**
@@ -792,7 +792,7 @@ class Config extends Secure_Controller
 
         $message = lang('Config.saved_' . ($success ? '' : 'un') . 'successfully');
 
-        $this->response->setJSON(['success' => $success, 'message' => $message]);
+        return $this->response->setJSON(['success' => $success, 'message' => $message]);
     }
 
     /**
@@ -846,7 +846,7 @@ class Config extends Secure_Controller
 
         $success = $this->db->transStatus();
 
-        $this->response->setJSON(['success' => $success, 'message' => lang('Config.saved_' . ($success ? '' : 'un') . 'successfully')]);
+        return $this->response->setJSON(['success' => $success, 'message' => lang('Config.saved_' . ($success ? '' : 'un') . 'successfully')]);
     }
 
     /**
@@ -878,7 +878,7 @@ class Config extends Secure_Controller
 
         $success = $this->appconfig->batch_save($batch_save_data);
 
-        $this->response->setJSON(['success' => $success, 'message' => lang('Config.saved_' . ($success ? '' : 'un') . 'successfully')]);
+        return $this->response->setJSON(['success' => $success, 'message' => lang('Config.saved_' . ($success ? '' : 'un') . 'successfully')]);
     }
 
     /**
@@ -913,7 +913,7 @@ class Config extends Secure_Controller
 
         $success = $this->appconfig->batch_save($batch_save_data);
 
-        $this->response->setJSON(['success' => $success, 'message' => lang('Config.saved_' . ($success ? '' : 'un') . 'successfully')]);
+        return $this->response->setJSON(['success' => $success, 'message' => lang('Config.saved_' . ($success ? '' : 'un') . 'successfully')]);
     }
 
     /**
@@ -954,7 +954,7 @@ class Config extends Secure_Controller
             }
         }
 
-        $this->response->setJSON(['success' => $success, 'message' => lang('Config.saved_' . ($success ? '' : 'un') . 'successfully')]);
+        return $this->response->setJSON(['success' => $success, 'message' => lang('Config.saved_' . ($success ? '' : 'un') . 'successfully')]);
     }
 
     /**
@@ -968,6 +968,6 @@ class Config extends Secure_Controller
     {
         $success = $this->appconfig->save(['company_logo' => '']);
 
-        $this->response->setJSON(['success' => $success]);
+        return $this->response->setJSON(['success' => $success]);
     }
 }

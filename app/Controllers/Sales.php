@@ -20,6 +20,7 @@ use App\Models\Stock_location;
 use App\Models\Tokens\Token_invoice_count;
 use App\Models\Tokens\Token_customer;
 use App\Models\Tokens\Token_invoice_sequence;
+use CodeIgniter\HTTP\ResponseInterface;
 use Config\Services;
 use Config\OSPOS;
 use ReflectionException;
@@ -120,7 +121,7 @@ class Sales extends Secure_Controller
         $sale_info = $this->sale->get_info($row_id)->getRow();
         $data_row = get_sale_data_row($sale_info);
 
-        $this->response->setJSON($data_row);
+        return $this->response->setJSON($data_row);
     }
 
     /**
@@ -166,7 +167,7 @@ class Sales extends Secure_Controller
             $data_rows[] = get_sale_data_last_row($sales);
         }
 
-        $this->response->setJSON(['total' => $total_rows, 'rows' => $data_rows, 'payment_summary' => $payment_summary]);
+        return $this->response->setJSON(['total' => $total_rows, 'rows' => $data_rows, 'payment_summary' => $payment_summary]);
     }
 
     /**
@@ -189,7 +190,7 @@ class Sales extends Secure_Controller
         $suggestions = array_merge($suggestions, $this->item->get_search_suggestions($search, ['search_custom' => false, 'is_deleted' => false], true));
         $suggestions = array_merge($suggestions, $this->item_kit->get_search_suggestions($search));
 
-        $this->response->setJSON($suggestions);
+        return $this->response->setJSON($suggestions);
     }
 
     /**
@@ -203,7 +204,7 @@ class Sales extends Secure_Controller
 
         $suggestions = $this->sale->get_search_suggestions($search);
 
-        $this->response->setJSON($suggestions);
+        return $this->response->setJSON($suggestions);
     }
 
     /**
@@ -300,55 +301,54 @@ class Sales extends Secure_Controller
     /**
      * Sets the sales comment. Used in app/Views/sales/register.php
      *
-     * @return void
      * @noinspection PhpUnused
      */
     public function postSetComment(): ResponseInterface|string
     {
         $this->sale_lib->set_comment($this->request->getPost('comment', FILTER_SANITIZE_FULL_SPECIAL_CHARS));
+        return $this->response->setJSON(['success' => true]);
     }
 
     /**
      * Sets the invoice number. Used in app/Views/sales/register.php
      *
-     * @return void
      * @noinspection PhpUnused
      */
     public function postSetInvoiceNumber(): ResponseInterface|string
     {
         $this->sale_lib->set_invoice_number($this->request->getPost('sales_invoice_number', FILTER_SANITIZE_NUMBER_INT));
+        return $this->response->setJSON(['success' => true]);
     }
 
     /**
-     * @return void
      */
     public function postSetPaymentType(): ResponseInterface|string    // TODO: This function does not appear to be called anywhere in the code.
     {
         $this->sale_lib->set_payment_type($this->request->getPost('selected_payment_type', FILTER_SANITIZE_FULL_SPECIAL_CHARS));
-        $this->_reload();    // TODO: Hungarian notation.
+        return $this->_reload();    // TODO: Hungarian notation.
     }
 
     /**
      * Sets PrintAfterSale flag. Used in app/Views/sales/register.php
      *
-     * @return void
      * @noinspection PhpUnused
      */
     public function postSetPrintAfterSale(): ResponseInterface|string
     {
         $this->sale_lib->set_print_after_sale($this->request->getPost('sales_print_after_sale') != 'false');
+        return $this->response->setJSON(['success' => true]);
     }
 
     /**
      * Sets the flag to include prices in the work order. Used in app/Views/sales/register.php
      *
-     * @return void
      * @noinspection PhpUnused
      */
     public function postSetPriceWorkOrders(): ResponseInterface|string
     {
         $price_work_orders = parse_decimals($this->request->getPost('price_work_orders'));
         $this->sale_lib->set_price_work_orders($price_work_orders);
+        return $this->response->setJSON(['success' => true]);
     }
 
     /**
@@ -864,7 +864,7 @@ class Sales extends Secure_Controller
      * @return bool
      * @noinspection PhpUnused
      */
-    public function getSendPdf(int $sale_id, string $type = 'invoice'): bool
+    public function getSendPdf(int $sale_id, string $type = 'invoice'): ResponseInterface|string
     {
         $sale_data = $this->_load_sale_data($sale_id);
 
@@ -899,21 +899,18 @@ class Sales extends Secure_Controller
             $message = lang($result ? "Sales." . $type . "_sent" : "Sales." . $type . "_unsent") . ' ' . $to;
         }
 
-        $this->response->setJSON(['success' => $result, 'message' => $message, 'id' => $sale_id]);
-
         $this->sale_lib->clear_all();
 
-        return $result;
+        return $this->response->setJSON(['success' => $result, 'message' => $message, 'id' => $sale_id]);
     }
 
     /**
      * Emails sales receipt to customer. Used in app/Views/sales/receipt.php
      *
      * @param int $sale_id
-     * @return bool
      * @noinspection PhpUnused
      */
-    public function getSendReceipt(int $sale_id): bool
+    public function getSendReceipt(int $sale_id): ResponseInterface|string
     {
         $sale_data = $this->_load_sale_data($sale_id);
 
@@ -934,11 +931,9 @@ class Sales extends Secure_Controller
             $message = lang($result ? 'Sales.receipt_sent' : 'Sales.receipt_unsent') . ' ' . $to;
         }
 
-        $this->response->setJSON(['success' => $result, 'message' => $message, 'id' => $sale_id]);
-
         $this->sale_lib->clear_all();
 
-        return $result;
+        return $this->response->setJSON(['success' => $result, 'message' => $message, 'id' => $sale_id]);
     }
 
     /**
@@ -1305,18 +1300,18 @@ class Sales extends Secure_Controller
         $has_grant = $this->employee->has_grant('sales_delete', $employee_id);
 
         if (!$has_grant) {
-            $this->response->setJSON(['success' => false, 'message' => lang('Sales.not_authorized')]);
+            return $this->response->setJSON(['success' => false, 'message' => lang('Sales.not_authorized')]);
         } else {
             $sale_ids = $sale_id == NEW_ENTRY ? $this->request->getPost('ids', FILTER_SANITIZE_NUMBER_INT) : [$sale_id];
 
             if ($this->sale->delete_list($sale_ids, $employee_id, $update_inventory)) {
-                $this->response->setJSON([
+                return $this->response->setJSON([
                     'success' => true,
                     'message' => lang('Sales.successfully_deleted') . ' ' . count($sale_ids) . ' ' . lang('Sales.one_or_multiple'),
                     'ids'     => $sale_ids
                 ]);
             } else {
-                $this->response->setJSON(['success' => false, 'message' => lang('Sales.unsuccessfully_deleted')]);
+                return $this->response->setJSON(['success' => false, 'message' => lang('Sales.unsuccessfully_deleted')]);
             }
         }
     }
@@ -1332,18 +1327,18 @@ class Sales extends Secure_Controller
         $has_grant = $this->employee->has_grant('sales_delete', $employee_id);
 
         if (!$has_grant) {
-            $this->response->setJSON(['success' => false, 'message' => lang('Sales.not_authorized')]);
+            return $this->response->setJSON(['success' => false, 'message' => lang('Sales.not_authorized')]);
         } else {
             $sale_ids = $sale_id == NEW_ENTRY ? $this->request->getPost('ids', FILTER_SANITIZE_NUMBER_INT) : [$sale_id];
 
             if ($this->sale->restore_list($sale_ids, $employee_id, $update_inventory)) {
-                $this->response->setJSON([
+                return $this->response->setJSON([
                     'success' => true,
                     'message' => lang('Sales.successfully_restored') . ' ' . count($sale_ids) . ' ' . lang('Sales.one_or_multiple'),
                     'ids'     => $sale_ids
                 ]);
             } else {
-                $this->response->setJSON(['success' => false, 'message' => lang('Sales.unsuccessfully_restored')]);
+                return $this->response->setJSON(['success' => false, 'message' => lang('Sales.unsuccessfully_restored')]);
             }
         }
     }
@@ -1435,9 +1430,9 @@ class Sales extends Secure_Controller
 
         $inventory->update('POS ' . $sale_id, ['trans_date' => $sale_time]);    // TODO: Reflection Exception
         if ($this->sale->update($sale_id, $sale_data)) {
-            $this->response->setJSON(['success' => true, 'message' => lang('Sales.successfully_updated'), 'id' => $sale_id]);
+            return $this->response->setJSON(['success' => true, 'message' => lang('Sales.successfully_updated'), 'id' => $sale_id]);
         } else {
-            $this->response->setJSON(['success' => false, 'message' => lang('Sales.unsuccessfully_updated'), 'id' => $sale_id]);
+            return $this->response->setJSON(['success' => false, 'message' => lang('Sales.unsuccessfully_updated'), 'id' => $sale_id]);
         }
     }
 
@@ -1578,15 +1573,15 @@ class Sales extends Secure_Controller
     /**
      * Check the validity of an invoice number. Used in app/Views/sales/form.php.
      *
-     * @return void
+     * @return ResponseInterface
      * @noinspection PhpUnused
      */
-    public function postCheckInvoiceNumber(): ResponseInterface|string
+    public function postCheckInvoiceNumber(): ResponseInterface
     {
         $sale_id = $this->request->getPost('sale_id', FILTER_SANITIZE_NUMBER_INT);
         $invoice_number = $this->request->getPost('invoice_number', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
         $exists = !empty($invoice_number) && $this->sale->check_invoice_number_exists($invoice_number, $sale_id);
-        echo !$exists ? 'true' : 'false';
+        return $this->response->setJSON(!$exists ? 'true' : 'false');
     }
 
     /**

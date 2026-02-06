@@ -202,20 +202,20 @@ class Item_kits extends Secure_Controller
             }
 
             if ($new_item) {
-                $this->response->setJSON([
+                return $this->response->setJSON([
                     'success' => $success,
                     'message' => lang('Item_kits.successful_adding') . ' ' . $item_kit_data['name'],
                     'id'      => $item_kit_id
                 ]);
             } else {
-                $this->response->setJSON([
+                return $this->response->setJSON([
                     'success' => $success,
                     'message' => lang('Item_kits.successful_updating') . ' ' . $item_kit_data['name'],
                     'id'      => $item_kit_id
                 ]);
             }
         } else { // Failure
-            $this->response->setJSON([
+            return $this->response->setJSON([
                 'success' => false,
                 'message' => lang('Item_kits.error_adding_updating') . ' ' . $item_kit_data['name'],
                 'id'      => NEW_ENTRY
@@ -231,25 +231,25 @@ class Item_kits extends Secure_Controller
         $item_kits_to_delete = $this->request->getPost('ids', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
 
         if ($this->item_kit->delete_list($item_kits_to_delete)) {
-            $this->response->setJSON([
+            return $this->response->setJSON([
                 'success' => true,
                 'message' => lang('Item_kits.successful_deleted') . ' ' . count($item_kits_to_delete) . ' ' . lang('Item_kits.one_or_multiple')
             ]);
         } else {
-            $this->response->setJSON(['success' => false, 'message' => lang('Item_kits.cannot_be_deleted')]);
+            return $this->response->setJSON(['success' => false, 'message' => lang('Item_kits.cannot_be_deleted')]);
         }
     }
 
     /**
      * Checks the validity of the item kit number. Used in app/Views/item_kits/form.php
      *
-     * @return void
+     * @return ResponseInterface
      * @noinspection PhpUnused
      */
-    public function postCheckItemNumber(): ResponseInterface|string
+    public function postCheckItemNumber(): ResponseInterface
     {
         $exists = $this->item_kit->item_number_exists($this->request->getPost('item_kit_number', FILTER_SANITIZE_FULL_SPECIAL_CHARS), $this->request->getPost('item_kit_id', FILTER_SANITIZE_NUMBER_INT));
-        echo !$exists ? 'true' : 'false';
+        return $this->response->setJSON(!$exists ? 'true' : 'false');
     }
 
     /**
