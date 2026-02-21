@@ -1,0 +1,68 @@
+services:
+    sqlscript:
+        build:
+            context: ./app/Database
+            dockerfile: Dockerfile
+        image: coastalledgers-pos-app:rel-3.4.1-sql
+        command: /bin/sh -c 'exit 0'
+
+    mysql:
+        image: mariadb:10.5
+        container_name: coastalledgers-mysql
+        restart: unless-stopped
+        depends_on:
+            - sqlscript
+        networks:
+            - app_net
+        volumes_from:
+            - sqlscript
+        volumes:
+            - mysql:/var/lib/mysql
+        healthcheck:
+            test: ["CMD-SHELL", "mysqladmin ping -uroot -ppointofsale --silent"]
+            interval: 5s
+            timeout: 3s
+            retries: 30
+        environment:
+            MYSQL_ROOT_PASSWORD: pointofsale
+            MYSQL_DATABASE: ospos
+            MYSQL_USER: admin
+            MYSQL_PASSWORD: pointofsale
+
+    pos-application:
+        build:
+            context: .
+            dockerfile: Dockerfile
+            target: ospos
+        image: coastalledgers-pos-app:rel-3.4.1
+        pull_policy: never
+        container_name: pos-application
+        restart: unless-stopped
+        depends_on:
+            mysql:
+                condition: service_healthy
+        ports:
+            - "8080:80"
+        networks:
+            - app_net
+        volumes:
+            - uploads:/app/public/uploads
+            - logs:/app/writable/logs
+            - cache:/app/writable/cache
+        environment:
+            CI_ENVIRONMENT: production
+            FORCE_HTTPS: "false"
+            PHP_TIMEZONE: UTC
+            MYSQL_USERNAME: admin
+            MYSQL_PASSWORD: pointofsale
+            MYSQL_DB_NAME: ospos
+            MYSQL_HOST_NAME: mysql
+
+volumes:
+    mysql:
+    uploads:
+    logs:
+    cache:
+
+networks:
+    app_net:

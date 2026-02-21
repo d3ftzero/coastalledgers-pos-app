@@ -1,5 +1,6 @@
 FROM alpine:3.14
-MAINTAINER jekkos
+LABEL maintainer="d3ftzero"
 
-ADD database.sql /docker-entrypoint-initdb.d/database.sql
+ADD tables.sql /docker-entrypoint-initdb.d/01-tables.sql
+ADD constraints.sql /docker-entrypoint-initdb.d/02-constraints.sql
 VOLUME /docker-entrypoint-initdb.d
