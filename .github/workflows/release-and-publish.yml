@@ -30,6 +30,11 @@ jobs:
       - name: Fetch refs
         run: git fetch origin --tags --prune
 
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
       - name: Resolve release metadata
         id: meta
         run: |
