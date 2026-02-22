@@ -1,0 +1,48 @@
+name: Build
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build and Test
+        run: docker compose -f docker-compose.local.yml up -d --build
+
+      - name: Wait for application
+        run: |
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:8080 >/dev/null; then
+              echo "Application is reachable."
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Application did not become reachable in time."
+          exit 1
+
+      - name: Check homepage
+        run: |
+          curl -fsS http://127.0.0.1:8080 | grep -qi "Open Source Point of Sale"
+
+      - name: Dump compose status on failure
+        if: failure()
+        run: docker compose -f docker-compose.local.yml ps
+
+      - name: Dump compose logs on failure
+        if: failure()
+        run: docker compose -f docker-compose.local.yml logs --no-color
+
+      - name: Teardown
+        if: always()
+        run: docker compose -f docker-compose.local.yml down -v

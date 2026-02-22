@@ -1,0 +1,146 @@
+name: Create Release and Publish Images
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_branch:
+        description: Source branch to release from
+        required: true
+        default: main
+      release_tag:
+        description: Release tag (must start with rel-)
+        required: true
+        default: rel-3.4.1
+      push_sql_image:
+        description: Also build/push SQL init image
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+jobs:
+  release-and-publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_branch }}
+          fetch-depth: 0
+
+      - name: Fetch refs
+        run: git fetch origin --tags --prune
+
+      - name: Resolve release metadata
+        id: meta
+        run: |
+          SOURCE_BRANCH="${{ inputs.source_branch }}"
+          TAG="${{ inputs.release_tag }}"
+
+          case "$TAG" in
+            rel-*) ;;
+            *) echo "release_tag must start with rel-"; exit 1 ;;
+          esac
+
+          if ! git ls-remote --heads origin "$SOURCE_BRANCH" | grep -q .; then
+            echo "Source branch '$SOURCE_BRANCH' does not exist on origin."
+            exit 1
+          fi
+
+          RELEASE_VERSION="${TAG#rel-}"
+          RELEASE_BRANCH="release/${RELEASE_VERSION}"
+          TARGET_SHA="$(git rev-parse "origin/${SOURCE_BRANCH}")"
+
+          echo "source_branch=${SOURCE_BRANCH}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "release_branch=${RELEASE_BRANCH}" >> "$GITHUB_OUTPUT"
+          echo "target_sha=${TARGET_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Create and push release branch if missing
+        run: |
+          RELEASE_BRANCH="${{ steps.meta.outputs.release_branch }}"
+          TARGET_SHA="${{ steps.meta.outputs.target_sha }}"
+
+          if git ls-remote --heads origin "$RELEASE_BRANCH" | grep -q .; then
+            echo "Release branch $RELEASE_BRANCH already exists."
+          else
+            git branch "$RELEASE_BRANCH" "$TARGET_SHA"
+            git push origin "$RELEASE_BRANCH"
+          fi
+
+      - name: Create and push tag if missing
+        run: |
+          TAG="${{ steps.meta.outputs.tag }}"
+          TARGET_SHA="${{ steps.meta.outputs.target_sha }}"
+
+          if git ls-remote --tags origin "refs/tags/$TAG" | grep -q .; then
+            echo "Tag $TAG already exists on origin."
+          else
+            git tag -a "$TAG" "$TARGET_SHA" -m "Release $TAG from ${{ steps.meta.outputs.source_branch }}"
+            git push origin "$TAG"
+          fi
+
+      - name: Checkout release commit
+        run: git checkout --detach "${{ steps.meta.outputs.target_sha }}"
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.tag }}
+          name: ${{ steps.meta.outputs.tag }}
+          generate_release_notes: true
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push app image
+        id: app_image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          target: ospos
+          push: true
+          tags: docker.io/${{ secrets.DOCKERHUB_USERNAME }}/coastalledgers-pos-app:${{ steps.meta.outputs.tag }}
+          build-args: |
+            COMMIT_SHA=${{ steps.meta.outputs.target_sha }}
+          provenance: false
+
+      - name: Build and push SQL init image
+        if: ${{ inputs.push_sql_image }}
+        id: sql_image
+        uses: docker/build-push-action@v6
+        with:
+          context: app/Database
+          file: app/Database/Dockerfile
+          push: true
+          tags: docker.io/${{ secrets.DOCKERHUB_USERNAME }}/coastalledgers-pos-app:${{ steps.meta.outputs.tag }}-sql
+          provenance: false
+
+      - name: Save image digest artifact
+        run: |
+          mkdir -p artifacts
+          echo "docker.io/${{ secrets.DOCKERHUB_USERNAME }}/coastalledgers-pos-app:${{ steps.meta.outputs.tag }}" > artifacts/app-image-tag.txt
+          echo "docker.io/${{ secrets.DOCKERHUB_USERNAME }}/coastalledgers-pos-app@${{ steps.app_image.outputs.digest }}" > artifacts/app-image-digest.txt
+          if [ "${{ inputs.push_sql_image }}" = "true" ]; then
+            echo "docker.io/${{ secrets.DOCKERHUB_USERNAME }}/coastalledgers-pos-app:${{ steps.meta.outputs.tag }}-sql" > artifacts/sql-image-tag.txt
+            echo "docker.io/${{ secrets.DOCKERHUB_USERNAME }}/coastalledgers-pos-app@${{ steps.sql_image.outputs.digest }}" > artifacts/sql-image-digest.txt
+          fi
+
+      - name: Upload digest artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: published-images
+          path: artifacts/

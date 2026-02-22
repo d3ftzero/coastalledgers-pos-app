@@ -36,6 +36,7 @@ RUN npm ci && npm run build
 # ---- 3) Runtime: Apache + PHP 8.2 ----
 FROM php:8.2-apache AS ospos
 LABEL maintainer="d3ftzero"
+ARG COMMIT_SHA=dev
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl libicu-dev libgd-dev \
@@ -51,6 +52,7 @@ RUN echo "date.timezone = UTC" > /usr/local/etc/php/conf.d/timezone.ini
 
 WORKDIR /app
 COPY . /app
+RUN sed -i "s/public string \$commit_sha1 = '.*';/public string \$commit_sha1 = '${COMMIT_SHA}';/" /app/app/Config/OSPOS.php
 
 # Bring in built frontend assets
 COPY --from=assets /app/app/Views/partial/header.php /app/app/Views/partial/header.php
