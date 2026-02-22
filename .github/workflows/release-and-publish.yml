@@ -3,10 +3,6 @@ name: Create Release and Publish Images
 on:
   workflow_dispatch:
     inputs:
-      source_branch:
-        description: Source branch to release from
-        required: true
-        default: main
       release_tag:
         description: Release tag (must start with rel-)
         required: true
@@ -28,7 +24,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.source_branch }}
+          ref: ${{ github.ref_name }}
           fetch-depth: 0
 
       - name: Fetch refs
@@ -37,7 +33,7 @@ jobs:
       - name: Resolve release metadata
         id: meta
         run: |
-          SOURCE_BRANCH="${{ inputs.source_branch }}"
+          SOURCE_BRANCH="${GITHUB_REF_NAME}"
           TAG="${{ inputs.release_tag }}"
 
           case "$TAG" in
@@ -73,13 +69,14 @@ jobs:
 
       - name: Create and push tag if missing
         run: |
+          SOURCE_BRANCH="${{ steps.meta.outputs.source_branch }}"
           TAG="${{ steps.meta.outputs.tag }}"
           TARGET_SHA="${{ steps.meta.outputs.target_sha }}"
 
           if git ls-remote --tags origin "refs/tags/$TAG" | grep -q .; then
             echo "Tag $TAG already exists on origin."
           else
-            git tag -a "$TAG" "$TARGET_SHA" -m "Release $TAG from ${{ steps.meta.outputs.source_branch }}"
+            git tag -a "$TAG" "$TARGET_SHA" -m "Release $TAG from ${SOURCE_BRANCH}"
             git push origin "$TAG"
           fi
 
