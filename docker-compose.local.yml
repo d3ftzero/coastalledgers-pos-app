@@ -3,7 +3,7 @@ services:
         build:
             context: ./app/Database
             dockerfile: Dockerfile
-        image: coastalledgers-pos-app:rel-3.4.1-sql
+        image: d3ftzero/coastalledgers-pos-app:rel-3.4.1-sql
         command: /bin/sh -c 'exit 0'
 
     mysql:
@@ -34,7 +34,7 @@ services:
             context: .
             dockerfile: Dockerfile
             target: ospos
-        image: coastalledgers-pos-app:rel-3.4.1
+        image: d3ftzero/coastalledgers-pos-app:rel-3.4.1
         pull_policy: never
         container_name: pos-application
         restart: unless-stopped
