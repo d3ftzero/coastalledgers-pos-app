@@ -4,6 +4,7 @@
  * @var array $config
  */
 
+use App\Models\Dinner_table;
 use App\Models\Employee;
 use App\Models\Customer;
 
@@ -37,7 +38,7 @@ use App\Models\Customer;
                 <td><?= $suspended_sale['doc_id'] ?></td>
                 <td><?= date($config['dateformat'], strtotime($suspended_sale['sale_time'])) ?></td>
                 <?php if ($config['dinner_table_enable']) { ?>
-                    <td><?= esc($this->Dinner_table->get_name($suspended_sale['dinner_table_id'])) ?></td>
+                    <td><?= esc(model(Dinner_table::class)->get_name($suspended_sale['dinner_table_id'])) ?></td>
                 <?php } ?>
                 <td>
                     <?php
