@@ -1,0 +1,188 @@
+name: Deploy Dev
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push app image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          target: ospos
+          push: true
+          tags: ${{ vars.IMAGE_REPOSITORY }}:dev
+          build-args: |
+            COMMIT_SHA=${{ github.sha }}
+          provenance: false
+
+      - name: Build and push SQL init image
+        uses: docker/build-push-action@v6
+        with:
+          context: app/Database
+          file: app/Database/Dockerfile
+          push: true
+          tags: ${{ vars.IMAGE_REPOSITORY }}:dev-sql
+          provenance: false
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    environment: dev
+    env:
+      IMAGE_REPOSITORY: ${{ vars.IMAGE_REPOSITORY }}
+      DOMAIN_VAR: ${{ vars.DOMAIN }}
+      APP_PORT_VAR: ${{ vars.APP_PORT }}
+      LETSENCRYPT_STAGING_VAR: ${{ vars.LETSENCRYPT_STAGING }}
+      PHP_TIMEZONE_VAR: ${{ vars.PHP_TIMEZONE }}
+      DB_NAME_VAR: ${{ vars.DB_NAME }}
+      DB_USER_VAR: ${{ vars.DB_USER }}
+      DOCKERHUB_USERNAME_SECRET: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN_SECRET: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    steps:
+      - name: Checkout deploy repo
+        uses: actions/checkout@v4
+        with:
+          repository: d3ftzero/coastalledgers-pos-deploy
+          token: ${{ secrets.DEPLOY_REPO_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        if: ${{ env.DOCKERHUB_USERNAME_SECRET != '' && env.DOCKERHUB_TOKEN_SECRET != '' }}
+        uses: docker/login-action@v3
+        with:
+          username: ${{ env.DOCKERHUB_USERNAME_SECRET }}
+          password: ${{ env.DOCKERHUB_TOKEN_SECRET }}
+
+      - name: Resolve image digests from dev tag
+        id: image
+        run: |
+          APP_IMAGE_REF="${IMAGE_REPOSITORY}:dev"
+          SQL_IMAGE_REF="${IMAGE_REPOSITORY}:dev-sql"
+
+          APP_DIGEST="$(docker buildx imagetools inspect "$APP_IMAGE_REF" | awk '/Digest:/ {print $2; exit}')"
+          SQL_DIGEST="$(docker buildx imagetools inspect "$SQL_IMAGE_REF" | awk '/Digest:/ {print $2; exit}')"
+
+          if [ -z "$APP_DIGEST" ]; then
+            echo "Could not resolve digest for $APP_IMAGE_REF"
+            exit 1
+          fi
+
+          if [ -z "$SQL_DIGEST" ]; then
+            echo "Could not resolve digest for $SQL_IMAGE_REF"
+            exit 1
+          fi
+
+          echo "app_image=${IMAGE_REPOSITORY}@${APP_DIGEST}" >> "$GITHUB_OUTPUT"
+          echo "app_sql_image=${IMAGE_REPOSITORY}@${SQL_DIGEST}" >> "$GITHUB_OUTPUT"
+
+      - name: Build runtime env file
+        env:
+          DB_PASSWORD_SECRET: ${{ secrets.DB_PASSWORD }}
+          DB_ROOT_PASSWORD_SECRET: ${{ secrets.DB_ROOT_PASSWORD }}
+          LETSENCRYPT_EMAIL_SECRET: ${{ secrets.LETSENCRYPT_EMAIL }}
+          DOCKERHUB_USERNAME_RUNTIME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN_RUNTIME: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          : > runtime.env
+          echo "CLIENT_ID=dev" >> runtime.env
+          echo "DOMAIN=${DOMAIN_VAR}" >> runtime.env
+          echo "APP_PORT=${APP_PORT_VAR}" >> runtime.env
+          echo "LETSENCRYPT_STAGING=${LETSENCRYPT_STAGING_VAR}" >> runtime.env
+          echo "PHP_TIMEZONE=${PHP_TIMEZONE_VAR}" >> runtime.env
+          echo "DB_NAME=${DB_NAME_VAR}" >> runtime.env
+          echo "DB_USER=${DB_USER_VAR}" >> runtime.env
+          echo "APP_IMAGE=${{ steps.image.outputs.app_image }}" >> runtime.env
+          echo "APP_SQL_IMAGE=${{ steps.image.outputs.app_sql_image }}" >> runtime.env
+
+          upsert_env() {
+            KEY="$1"
+            VALUE="$2"
+            if grep -q "^${KEY}=" runtime.env; then
+              sed -i "s#^${KEY}=.*#${KEY}=${VALUE}#" runtime.env
+            else
+              echo "${KEY}=${VALUE}" >> runtime.env
+            fi
+          }
+
+          require_value() {
+            NAME="$1"
+            VALUE="$2"
+            if [ -z "$VALUE" ]; then
+              echo "Required value '$NAME' is missing in environment dev"
+              exit 1
+            fi
+          }
+
+          require_value DB_PASSWORD "$DB_PASSWORD_SECRET"
+          require_value DB_ROOT_PASSWORD "$DB_ROOT_PASSWORD_SECRET"
+          require_value LETSENCRYPT_EMAIL "$LETSENCRYPT_EMAIL_SECRET"
+
+          require_value DOMAIN "$DOMAIN_VAR"
+          require_value APP_PORT "$APP_PORT_VAR"
+          require_value LETSENCRYPT_STAGING "$LETSENCRYPT_STAGING_VAR"
+          require_value PHP_TIMEZONE "$PHP_TIMEZONE_VAR"
+          require_value DB_NAME "$DB_NAME_VAR"
+          require_value DB_USER "$DB_USER_VAR"
+
+          upsert_env DB_PASSWORD "$DB_PASSWORD_SECRET"
+          upsert_env DB_ROOT_PASSWORD "$DB_ROOT_PASSWORD_SECRET"
+          upsert_env LETSENCRYPT_EMAIL "$LETSENCRYPT_EMAIL_SECRET"
+
+          if [ -n "${DOCKERHUB_USERNAME_RUNTIME}" ] && [ -n "${DOCKERHUB_TOKEN_RUNTIME}" ]; then
+            upsert_env DOCKERHUB_USERNAME "$DOCKERHUB_USERNAME_RUNTIME"
+            upsert_env DOCKERHUB_TOKEN "$DOCKERHUB_TOKEN_RUNTIME"
+          fi
+
+      - name: Copy files to Linode
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.LINODE_HOST }}
+          username: ${{ secrets.LINODE_USER }}
+          key: ${{ secrets.LINODE_SSH_KEY }}
+          source: "compose,nginx,scripts,runtime.env"
+          target: "/tmp/coastalledgers-pos-deploy"
+
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.LINODE_HOST }}
+          username: ${{ secrets.LINODE_USER }}
+          key: ${{ secrets.LINODE_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            sudo mkdir -p /opt/coastalledgers-pos
+            sudo rsync -a /tmp/coastalledgers-pos-deploy/ /opt/coastalledgers-pos/
+            sudo chown -R "$USER":"$USER" /opt/coastalledgers-pos
+            cd /opt/coastalledgers-pos
+            chmod +x scripts/*.sh
+            ./scripts/deploy.sh runtime.env
+            ./scripts/configure-nginx-letsencrypt.sh runtime.env
