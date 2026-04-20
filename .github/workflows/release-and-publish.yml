@@ -57,15 +57,19 @@ jobs:
 
           echo "source_branch=${SOURCE_BRANCH}" >> "$GITHUB_OUTPUT"
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "release_version=${RELEASE_VERSION}" >> "$GITHUB_OUTPUT"
           echo "release_branch=${RELEASE_BRANCH}" >> "$GITHUB_OUTPUT"
           echo "target_sha=${TARGET_SHA}" >> "$GITHUB_OUTPUT"
 
       - name: Create and push release branch if missing
         run: |
+          RELEASE_VERSION="${{ steps.meta.outputs.release_version }}"
           RELEASE_BRANCH="${{ steps.meta.outputs.release_branch }}"
           TARGET_SHA="${{ steps.meta.outputs.target_sha }}"
 
-          if git ls-remote --heads origin "$RELEASE_BRANCH" | grep -q .; then
+          if [[ "$RELEASE_VERSION" == *-* ]]; then
+            echo "Patch release detected ($RELEASE_VERSION), skipping branch creation."
+          elif git ls-remote --heads origin "$RELEASE_BRANCH" | grep -q .; then
             echo "Release branch $RELEASE_BRANCH already exists."
           else
             git branch "$RELEASE_BRANCH" "$TARGET_SHA"
